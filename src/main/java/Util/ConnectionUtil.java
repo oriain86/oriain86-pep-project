@@ -57,7 +57,7 @@ public class ConnectionUtil {
 
 		return null;
 	}
-
+	
 	/**
 	 * For the purpose of testing, we will need to drop and recreate our database
 	 * tables to keep it consistent across all tests. The method will read the sql

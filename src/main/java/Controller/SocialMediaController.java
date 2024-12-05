@@ -1,33 +1,146 @@
 package Controller;
 
+import Service.AccountService;
+import Service.MessageService;
+import Model.Account;
+import Model.Message;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
+import java.util.List;
 
-/**
- * TODO: You will need to write your own endpoints and handlers for your controller. The endpoints you will need can be
- * found in readme.md as well as the test cases. You should
- * refer to prior mini-project labs and lecture materials for guidance on how a controller may be built.
- */
+import java.util.Optional;
+
+
+
 public class SocialMediaController {
-    /**
-     * In order for the test cases to work, you will need to write the endpoints in the startAPI() method, as the test
-     * suite must receive a Javalin object from this method.
-     * @return a Javalin app object which defines the behavior of the Javalin controller.
-     */
+
+    // Dependencies
+    
+    private final AccountService accountService = new AccountService();
+    private final MessageService messageService = new MessageService();
+
+
+
+    // Endpoints
+
     public Javalin startAPI() {
         Javalin app = Javalin.create();
-        app.get("example-endpoint", this::exampleHandler);
-
+        app.post("/register", this::registerAccount);
+        app.post("/login", this::loginAccount);
+        app.get("/messages", this::getAllMessages);
+        app.post("/messages", this::createMessage);
+        app.get("/messages/{messageId}", this::getMessageById);
+        app.delete("/messages/{messageId}", this::deleteMessageById);
+        app.patch("/messages/{messageId}", this::updateMessageText);
+        app.get("/accounts/{accountId}/messages", this::getMessagesByAccountId);
         return app;
     }
 
-    /**
-     * This is an example handler for an example endpoint.
-     * @param context The Javalin Context object manages information about both the HTTP request and response.
-     */
-    private void exampleHandler(Context context) {
-        context.json("sample text");
+
+
+    // HTTP Handlers
+
+    // Delegates requests to the accountService.registerAccount function
+
+    private void registerAccount(Context context) {
+        Account account = context.bodyAsClass(Account.class);
+        Optional<Account> registeredAccount = accountService.registerAccount(account);
+        if (registeredAccount.isPresent()) {
+            context.status(200).json(registeredAccount.get());
+        } else {
+            context.status(400).result();
+        }
     }
 
 
+
+    // Delegates requests to the accountService.loginAccount function
+
+    private void loginAccount(Context context) {
+        Account account = context.bodyAsClass(Account.class);
+        Optional<Account> loggedInAccount = accountService.loginAccount(account.getUsername(), account.getPassword());
+        if (loggedInAccount.isPresent()) {
+            context.status(200).json(loggedInAccount.get());
+        } else {
+            context.status(401).result();
+        }
+    }
+
+
+
+    // Delegates requests to the messageService.getAllMessages function
+
+    private void getAllMessages(Context context) {
+        List<Message> messages = messageService.getAllMessages();
+        context.status(200).json(messages);
+    }
+
+
+
+    // Delegates requests to the messageService.createMessage function
+
+    private void createMessage(Context context) {
+        Message message = context.bodyAsClass(Message.class);
+        Optional<Message> createdMessage = messageService.createMessage(message);
+        if (createdMessage.isPresent()) {
+            context.status(200).json(createdMessage.get());
+        } else {
+            context.status(400).result();
+        }
+    }
+
+
+
+    // Delegates requests to the messageService.getMessageById function 
+
+    private void getMessageById(Context context) {
+        int messageId = Integer.parseInt(context.pathParam("messageId"));
+        Optional<Message> message = messageService.getMessageById(messageId);
+        if (message.isPresent()) {
+            context.status(200).json(message.get());
+        } else {
+            context.status(200).result(""); // Return an empty result for non-existent messages
+        }
+    }
+    
+
+
+
+    // Delegates requests to the messageService.deleteMessage function
+
+    private void deleteMessageById(Context context) {
+        int messageId = Integer.parseInt(context.pathParam("messageId"));
+        Optional<Message> deletedMessage = messageService.deleteMessage(messageId);
+        if (deletedMessage.isPresent()) {
+            context.status(200).json(deletedMessage.get());
+        } else {
+            context.status(200).result(""); // Idempotent response for non-existent messages
+        }
+    }
+
+
+
+    // Delegates requests to the messageService.updateMessageText function
+
+    private void updateMessageText(Context context) {
+        int messageId = Integer.parseInt(context.pathParam("messageId"));
+        String newText = context.bodyAsClass(Message.class).getMessage_text();
+    
+        Optional<Message> updatedMessage = messageService.updateMessageText(messageId, newText);
+        if (updatedMessage.isPresent()) {
+            context.status(200).json(updatedMessage.get());
+        } else {
+            context.status(400).result();
+        }
+    }
+
+
+
+    // Delegates requests to the messageService.updateMessageText function
+
+    private void getMessagesByAccountId(Context context) {
+        int accountId = Integer.parseInt(context.pathParam("accountId"));
+        List<Message> messages = messageService.getMessagesByAccountId(accountId);
+        context.status(200).json(messages);
+    }
 }
